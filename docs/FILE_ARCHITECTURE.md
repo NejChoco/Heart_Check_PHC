@@ -39,6 +39,7 @@ Directory structure:
     │   │   │   ├── components/
     │   │   │   │   ├── AlgorithmComparisonTable.tsx
     │   │   │   │   ├── ArimaForecast.tsx
+    │   │   │   │   ├── BottleneckStageTable.tsx
     │   │   │   │   ├── DateRangeSelector.tsx
     │   │   │   │   ├── LRForecast.tsx
     │   │   │   │   ├── MetricCardShow.tsx
@@ -62,6 +63,7 @@ Directory structure:
     │   │   │   └── page.tsx
     │   │   ├── hooks/
     │   │   │   ├── useBottleneckNotifications.ts
+    │   │   │   ├── useIdleTimeout.ts
     │   │   │   └── useOverviewData.ts
     │   │   ├── patients/
     │   │   │   ├── page.tsx
@@ -127,7 +129,6 @@ Directory structure:
     │   │   │   ├── layout.tsx
     │   │   │   ├── page.tsx
     │   │   │   └── components/
-    │   │   │       ├── KioskBackButton.tsx
     │   │   │       ├── KioskBanner.tsx
     │   │   │       ├── KioskHeader.tsx
     │   │   │       ├── KioskServicesCard.tsx
@@ -178,9 +179,11 @@ Directory structure:
     │   │   │   ├── Sidebar.tsx
     │   │   │   └── WithDoctorSection.tsx
     │   │   ├── hooks/
+    │   │   │   ├── useIdleTimeout.ts
     │   │   │   ├── useNurseActions.ts
     │   │   │   ├── useNurseData.ts
-    │   │   │   └── useRealtimeSubscription.ts
+    │   │   │   ├── useRealtimeSubscription.ts
+    │   │   │   └── useRequireAuth.ts
     │   │   └── lib/
     │   │       └── constants.ts
     │   ├── superadmin/
@@ -189,8 +192,11 @@ Directory structure:
     │   │   ├── components/
     │   │   │   ├── SettingsPannel.tsx
     │   │   │   └── SuperAdminNav.tsx
-    │   │   └── customization/
-    │   │       └── page.tsx
+    │   │   ├── customization/
+    │   │   │   └── page.tsx
+    │   │   └── hooks/
+    │   │       ├── useIdleTimeout.ts
+    │   │       └── useRequireAuth.ts
     │   └── transfer/
     │       ├── page.tsx
     │       ├── components/
@@ -210,29 +216,28 @@ Directory structure:
     │       │   ├── useAutoRotate.ts
     │       │   ├── useCubicleData.ts
     │       │   ├── useDragAndDrop.ts
+    │       │   ├── useIdleTimeout.ts
     │       │   ├── usePatientData.ts
     │       │   ├── useRealtimeSubscription.ts
     │       │   ├── useRegistrationDragAndDrop.ts
+    │       │   ├── useRequireAuth.ts
     │       │   └── useRotateTimeout.ts
     │       └── lib/
     │           └── constants.ts
     ├── components/
     │   ├── backgrounds/
-    │   │   ├── DashboardBg.tsx
-    │   │   └── Univbackground.tsx
-    │   ├── reusables/
-    │   │   ├── analyticsMetricCards.tsx
-    │   │   ├── analyticsMetricHeader.tsx
-    │   │   ├── analyticsMetricPara.tsx
-    │   │   ├── metricCards.tsx
-    │   │   ├── patientHeaderCard.tsx
-    │   │   ├── patientMetricCard.tsx
-    │   │   └── serviceMetricCard.tsx
-    │   └── ui/
-    │       ├── bgCard.tsx
-    │       ├── bgDisplay.tsx
-    │       ├── ConfirmationModal.tsx
-    │       └── displayHeader.tsx
+    │   │   └── DashboardBg.tsx
+    │   ├── modals/
+    │   │   └── ConfirmationModal.tsx
+    │   └── reusables/
+    │       ├── analyticsMetricCards.tsx
+    │       ├── analyticsMetricHeader.tsx
+    │       ├── analyticsMetricPara.tsx
+    │       ├── KioskBackButton.tsx
+    │       ├── metricCards.tsx
+    │       ├── patientHeaderCard.tsx
+    │       ├── patientMetricCard.tsx
+    │       └── serviceMetricCard.tsx
     ├── constants/
     │   ├── themes.js
     │   └── themestesting.js
@@ -263,6 +268,8 @@ Directory structure:
     │   ├── check_dates.py
     │   ├── db_seeder.py
     │   ├── debug_analytics.py
+    │   ├── dropped_rows_2024_DEC.csv
+    │   ├── dropped_rows_2024_NOV.csv
     │   ├── import_phc_data.py
     │   ├── import_seeder_to_supabase.py
     │   ├── main.py
@@ -290,4 +297,5 @@ Directory structure:
     └── utils/
         ├── chartDataPrep.ts
         └── waitTime.ts
+
 ```

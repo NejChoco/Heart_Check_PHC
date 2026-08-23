@@ -214,3 +214,62 @@ def service_distribution(df: pd.DataFrame) -> pd.DataFrame:
         .sort_values('total_patients', ascending=False)
         .round(2)
     )
+
+
+def monthly_breakdown(df: pd.DataFrame) -> dict:
+    """
+    Groups the full dataset by year and month, and computes a typical
+    bottleneck stage + average total patient time for each month.
+
+    Powers the Overview banner's year dropdown / monthly breakdown table —
+    lets the person see how the bottleneck and average time shifted
+    month-to-month across all historical years, rather than one number
+    smeared across the entire date range.
+
+    Returns a dict keyed by year as a string (e.g. "2024"), each holding
+    a chronological list of month entries. Only months with at least one
+    patient record are included — no empty filler months.
+    """
+    if df.empty or 'visit_date' not in df.columns:
+        return {}
+
+    dates = pd.to_datetime(df['visit_date'])
+    years = sorted(dates.dt.year.unique().tolist())
+
+    result = {}
+    for year in years:
+        year_mask = dates.dt.year == year
+        year_df   = df[year_mask]
+        year_dates = dates[year_mask]
+
+        months = sorted(year_dates.dt.month.unique().tolist())
+        month_entries = []
+
+        for month in months:
+            month_mask = year_dates.dt.month == month
+            month_df   = year_df[month_mask]
+
+            if month_df.empty:
+                continue
+
+            b = bottleneck_report(month_df)
+
+            if 'total_time' in month_df.columns:
+                completed = month_df['total_time']
+                completed = completed[completed > 0].dropna()
+                avg_total_time = round(float(completed.mean()), 2) if not completed.empty else 0.0
+            else:
+                avg_total_time = 0.0
+
+            month_entries.append({
+                "month"              : month,
+                "month_label"        : pd.Timestamp(year=int(year), month=int(month), day=1).strftime("%B"),
+                "patient_count"      : int(len(month_df)),
+                "bottleneck_stage"   : b.get("bottleneck_stage", "N/A"),
+                "system_status"      : b.get("system_status", "No Data"),
+                "avg_total_time_min" : avg_total_time,
+            })
+
+        result[str(year)] = month_entries
+
+    return result

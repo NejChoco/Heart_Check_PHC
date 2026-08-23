@@ -50,25 +50,6 @@ def convert_to_native(obj):
     return obj
 
 
-def _todays_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Filters to the current Asia/Manila calendar day only, using the
-    `visit_date` column preprocessing already derives from local time.
-
-    Used specifically for the bottleneck/stage breakdown, which is meant
-    to reflect "is the queue overwhelmed right now" — not an average
-    smeared across whatever historical range the dashboard's date-range
-    selector happens to be showing (90 days, a year, all time, etc).
-    Resets naturally at midnight Manila time since `today` is
-    recomputed on every request rather than cached.
-    """
-    if 'visit_date' not in df.columns:
-        return df.iloc[0:0]  # empty slice with same columns/dtypes
-
-    today = pd.Timestamp.now(tz='Asia/Manila').date()
-    return df[df['visit_date'] == today]
-
-
 def generate_report(
     df         : pd.DataFrame,
     opd_hours  : float = 8.0,
@@ -102,20 +83,18 @@ def generate_report(
     eval_data       = evaluate_forecasting_algorithms(df_clean)
     predicted_vol   = eval_data.get("next_day_forecast", 0)
 
-    # Bottleneck analysis uses only today's rows — see _todays_rows() docstring.
-    # Independent of whatever range (90d/180d/365d/all) the rest of the
-    # report below is built from.
-    df_today = _todays_rows(df_clean)
-
     report = {
         # Descriptive 
         "daily_summary" : daily_summary(df_clean).to_dict(orient='records'),
         "hourly_pattern"       : hourly_pattern(df_clean).to_dict(orient='records'),
         "service_distribution" : service_distribution(df_clean).to_dict(orient='records'),
 
-
-        # Bottleneck — today only, resets at midnight Manila time
-        "bottleneck_analysis" : bottleneck_report(df_today),
+        # Bottleneck — computed over the requested range (df_clean), matching
+        # every other section and the "Based on all historical patient
+        # records" copy shown on the frontend. Per-year/per-month breakdown
+        # is served separately via /api/monthly-breakdown/{year} rather than
+        # being computed here on every dashboard-data call.
+        "bottleneck_analysis" : bottleneck_report(df_clean),
 
         # Queue metrics
         "registration"    : registration_metrics(df_clean),
