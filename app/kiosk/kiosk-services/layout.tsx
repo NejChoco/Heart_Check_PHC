@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import KioskBanner from "@/app/kiosk/kiosk-services/components/KioskBanner";
-import KioskBackButton from "./components/KioskBackButton";
+import KioskBackButton from "../../../components/reusables/KioskBackButton";
 
 const backRoute: Record<string, string> = {
     "/kiosk/kiosk-services": "/kiosk/kiosk-new-old-selection",

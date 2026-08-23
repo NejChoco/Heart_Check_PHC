@@ -6,6 +6,7 @@ into the single payload served to the admin dashboard.
 
 import pandas as pd
 import numpy as np
+import math
 from .preprocessing  import preprocess_queue_data
 from .descriptive    import daily_summary, hourly_pattern, bottleneck_report, service_distribution
 from .queue_metrics  import (
@@ -18,7 +19,17 @@ from .forecasting    import evaluate_forecasting_algorithms, get_lr_chart_data, 
 from .staffing       import recommend_staff
 
 def convert_to_native(obj):
-    """Recursively convert numpy types to Python native types for JSON serialization."""
+    """
+    Recursively convert numpy types to Python native types for JSON serialization.
+
+    Also sanitizes NaN/Infinity floats to None. Standard JSON has no
+    representation for NaN — Python's json.dumps will happily emit the
+    literal token `NaN` by default, but that's not valid JSON and browsers'
+    fetch()/JSON.parse() reject it outright, surfacing as a generic
+    "Failed to fetch" on the frontend with no indication that the actual
+    cause was a NaN deep in the payload (e.g. a stage average computed
+    from a subset of patients who are all still in-progress).
+    """
     if isinstance(obj, dict):
         return {key: convert_to_native(val) for key, val in obj.items()}
     elif isinstance(obj, (list, tuple)):
@@ -26,12 +37,36 @@ def convert_to_native(obj):
     elif isinstance(obj, (np.integer, np.int64, np.int32)):
         return int(obj)
     elif isinstance(obj, (np.floating, np.float64, np.float32)):
-        return float(obj)
+        val = float(obj)
+        return None if math.isnan(val) or math.isinf(val) else val
+    elif isinstance(obj, float):
+        return None if math.isnan(obj) or math.isinf(obj) else obj
     elif isinstance(obj, np.bool_):
         return bool(obj)
+    elif obj is pd.NA:
+        return None
     elif isinstance(obj, (np.ndarray, pd.Series)):
         return convert_to_native(obj.tolist())
     return obj
+
+
+def _todays_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filters to the current Asia/Manila calendar day only, using the
+    `visit_date` column preprocessing already derives from local time.
+
+    Used specifically for the bottleneck/stage breakdown, which is meant
+    to reflect "is the queue overwhelmed right now" — not an average
+    smeared across whatever historical range the dashboard's date-range
+    selector happens to be showing (90 days, a year, all time, etc).
+    Resets naturally at midnight Manila time since `today` is
+    recomputed on every request rather than cached.
+    """
+    if 'visit_date' not in df.columns:
+        return df.iloc[0:0]  # empty slice with same columns/dtypes
+
+    today = pd.Timestamp.now(tz='Asia/Manila').date()
+    return df[df['visit_date'] == today]
 
 
 def generate_report(
@@ -67,6 +102,11 @@ def generate_report(
     eval_data       = evaluate_forecasting_algorithms(df_clean)
     predicted_vol   = eval_data.get("next_day_forecast", 0)
 
+    # Bottleneck analysis uses only today's rows — see _todays_rows() docstring.
+    # Independent of whatever range (90d/180d/365d/all) the rest of the
+    # report below is built from.
+    df_today = _todays_rows(df_clean)
+
     report = {
         # Descriptive 
         "daily_summary" : daily_summary(df_clean).to_dict(orient='records'),
@@ -74,8 +114,8 @@ def generate_report(
         "service_distribution" : service_distribution(df_clean).to_dict(orient='records'),
 
 
-        # Bottleneck
-        "bottleneck_analysis" : bottleneck_report(df_clean),
+        # Bottleneck — today only, resets at midnight Manila time
+        "bottleneck_analysis" : bottleneck_report(df_today),
 
         # Queue metrics
         "registration"    : registration_metrics(df_clean),
@@ -117,10 +157,12 @@ def _empty_report() -> dict:
         "hourly_pattern": [],
         "service_distribution" : [],
         "bottleneck_analysis": {
+            "stages": [],
+            "primary_bottleneck": None,
+            "system_status": "No data",
             "bottleneck_stage": "N/A",
             "avg_wait_registration_min": 0.0,
             "avg_wait_consultation_min": 0.0,
-            "system_status": "No data",
         },
         "registration": {
             "patients_served": 0,

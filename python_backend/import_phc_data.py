@@ -23,7 +23,7 @@ EXCEL_PATHS = [
     "/home/jensen/Github-Repositories/Heart_Check_PHC/python_backend/data_entries/2024_OCT.xls",
     "/home/jensen/Github-Repositories/Heart_Check_PHC/python_backend/data_entries/2024_NOV.xls",
     "/home/jensen/Github-Repositories/Heart_Check_PHC/python_backend/data_entries/2024_DEC.xls"
-    
+
 ]
 
 SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
@@ -68,10 +68,11 @@ def extract_sheet_data(path, sheet_name):
             break
         rows.append({
             "patientNum":    hosp_str,   # kept in df for reference only, not inserted
-            "reg_start":     raw.iloc[r, hosp_col + 1],
-            "reg_end":       raw.iloc[r, hosp_col + 2],
-            "consult_start": raw.iloc[r, hosp_col + 3],
-            "consult_end":   raw.iloc[r, hosp_col + 4],
+            "reg_start":     raw.iloc[r, hosp_col + 1],   # Queuing Time
+            "reg_end":       raw.iloc[r, hosp_col + 2],   # Initial Assessment
+            "consult_start": raw.iloc[r, hosp_col + 3],   # Doctor Seen
+            "consult_end":   raw.iloc[r, hosp_col + 4],   # Doctor Completed
+            "carryout_end":  raw.iloc[r, hosp_col + 5],   # Carry Out Completed
         })
 
     if not rows:
@@ -126,7 +127,10 @@ def combine_date_and_time(df):
         # Reconstruct the time string with the corrected 24-hour integer
         return f"{hour:02d}:{t.minute:02d}:{t.second:02d}"
 
-    for col in ["reg_start", "reg_end", "consult_start", "consult_end"]:
+    # carryout_end is sourced from the sheet like the others; carryout_start
+    # has no source column (there's no "Carry Out Start" in the sheet) and
+    # is derived below from consult_end instead.
+    for col in ["reg_start", "reg_end", "consult_start", "consult_end", "carryout_end"]:
         # Apply the fix function instead of a simple lambda
         time_str = df[col].apply(fix_am_pm)
 
@@ -144,6 +148,9 @@ def combine_date_and_time(df):
 
 
 def validate_and_drop(df, source_label=""):
+    # carryout_end is intentionally NOT required — some sheets/patients won't
+    # have a recorded carry-out completion time, and that shouldn't drop an
+    # otherwise valid registration+consultation row.
     required = ["reg_start", "reg_end", "consult_start", "consult_end"]
     before = len(df)
     bad = df[df[required].isna().any(axis=1)]
@@ -153,6 +160,11 @@ def validate_and_drop(df, source_label=""):
         print(f"Saved {len(bad)} dropped rows to {fname}")
     df = df.dropna(subset=required)
     print(f"Kept {len(df)} of {before} rows total")
+
+    missing_carryout = df["carryout_end"].isna().sum()
+    if missing_carryout > 0:
+        print(f"Note: {missing_carryout} of {len(df)} kept rows have no carryout_end recorded")
+
     return df
 
 
@@ -162,16 +174,32 @@ def add_schema_columns(df):
     df["status"]     = "Done"
     df["phoneNum"]   = None
     df["cubicleNum"] = None
+    df["is_historical"] = True
+
+    # carryout_start has no source column on the sheet — the only timestamp
+    # marking the start of carryout is when the doctor finished, i.e. consult_end.
+    # Where carryout_end is missing, leave carryout_start null too (nothing to
+    # measure a carryout duration against).
+    df["carryout_start"] = df["consult_end"].where(df["carryout_end"].notna())
+
     return df
 
 
 def to_supabase_records(df):
     cols = ["created_at", "phoneNum", "service",
              "cubicleNum", "status", "reg_start", "reg_end",
-             "consult_start", "consult_end"]
+             "consult_start", "consult_end", "carryout_start", "carryout_end",
+             "is_historical"]
     out = df[cols].copy()
-    for c in ["created_at", "reg_start", "reg_end", "consult_start", "consult_end"]:
-        out[c] = out[c].dt.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+    ts_cols = ["created_at", "reg_start", "reg_end", "consult_start", "consult_end",
+               "carryout_start", "carryout_end"]
+    for c in ts_cols:
+        # NaT-safe formatting: carryout_start/carryout_end can be null even
+        # after validate_and_drop (they're optional), so a plain .dt.strftime
+        # would emit the literal string "NaT" instead of a real null.
+        out[c] = out[c].apply(lambda x: x.strftime("%Y-%m-%dT%H:%M:%S%z") if pd.notna(x) else None)
+
     return out.to_dict(orient="records")
 
 

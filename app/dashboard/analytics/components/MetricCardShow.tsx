@@ -8,22 +8,38 @@ interface Props {
 }
 
 export default function MetricCardsRow({ data }: Props) {
+  const bottleneck = data.bottleneck_analysis;
+  const status = bottleneck?.system_status || "Normal";
+  const primary = bottleneck?.primary_bottleneck;
+
+  // Card color now reflects all 3 levels, not just Overwhelmed/Normal —
+  // Elevated gets its own color so it doesn't get buried as "fine" (green)
+  // or wrongly alarmed as "critical" (red) when it's actually in between.
+  const statusStyles: Record<string, string> = {
+    Overwhelmed: "bg-red-500",
+    Elevated: "bg-amber-500",
+    Normal: "bg-green-500",
+  };
+  const cardColor = statusStyles[status] || "bg-gray-500";
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
 
       {/* */}
       <div className={`p-6 rounded-[28px] shadow-[0_10px_40px_rgba(255,120,120,0.06)] backdrop-blur-xl
-        text-white transition-colors duration-500 ${
-          data.bottleneck_analysis?.system_status === "Overwhelmed"
-            ? "bg-red-500" : "bg-green-500"
-        }`}>
+        text-white transition-colors duration-500 ${cardColor}`}>
         <h2 className="text-xs font-bold uppercase tracking-widest">System Status</h2>
         <p className="text-4xl font-extrabold mt-3">
-          {data.bottleneck_analysis?.system_status || "Normal"}
+          {status}
         </p>
         <p className="text-xs mt-2 font-semibold">
-          Bottleneck: {data.bottleneck_analysis?.bottleneck_stage || "None"}
+          Bottleneck: {primary?.stage_label || bottleneck?.bottleneck_stage || "None"}
         </p>
+        {primary?.reason && (
+          <p className="text-xs mt-1 opacity-90 leading-snug">
+            {primary.reason}
+          </p>
+        )}
       </div>
 
       <AnalyticsMetricCards>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import KioskHeader from "@/app/kiosk/kiosk-services/components/KioskHeader";
-import KioskBackButton from "@/app/kiosk/kiosk-services/components/KioskBackButton";
+import KioskBackButton from "@/components/reusables/KioskBackButton";
 
 export default function MainKioskLayout({
     children,
@@ -61,7 +61,8 @@ export default function MainKioskLayout({
      */
     const shouldShowBackButton =
         pathname === "/kiosk/kiosk-services" ||
-        pathname === "/kiosk/kiosk-cubicle-selection";
+        pathname === "/kiosk/kiosk-cubicle-selection" ||
+        pathname === "/kiosk/consultation-category";
 
     /*
      * Determine where the back button should go.
@@ -70,17 +71,22 @@ export default function MainKioskLayout({
     let backHref: string | undefined = undefined;
 
     if (pathname === "/kiosk/kiosk-services") {
-        backHref = patientType
-            ? `/kiosk/kiosk-new-old-selection?type=${encodeURIComponent(
-                  patientType
-              )}`
-            : "/kiosk/kiosk-new-old-selection";
+        backHref = "/kiosk/kiosk-new-old-selection";
     }
 
     if (pathname === "/kiosk/kiosk-cubicle-selection") {
         backHref = patientType
             ? `/kiosk/kiosk-services?type=${encodeURIComponent(patientType)}`
             : "/kiosk/kiosk-services";
+    }
+
+    if (pathname === "/kiosk/consultation-category") {
+        const serviceId = searchParams.get("serviceId");
+        const params = new URLSearchParams();
+            if (patientType) params.set("type", patientType);
+            if (serviceId) params.set("serviceId", serviceId);
+        const query = params.toString();
+        backHref = `/kiosk/kiosk-services${query ? `?${query}` : ""}`;
     }
 
     return (

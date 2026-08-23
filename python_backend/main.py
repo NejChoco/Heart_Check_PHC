@@ -120,7 +120,13 @@ def normalize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         df["kiosk_time"] = df["created_at"]
         df = df.drop(columns=["created_at"])
 
-    for col in ["kiosk_time", "reg_start", "reg_end", "consult_start", "consult_end", "updated_at"]:
+    # carryout_start/carryout_end added alongside is_historical — parsed the
+    # same way as the other timestamp columns below. Left out of the loop
+    # is a no-op if a caller still passes the old select() list, since the
+    # `if col in df.columns` guard in preprocess_queue_data() (analytics
+    # module) skips the carryout stage entirely rather than erroring.
+    for col in ["kiosk_time", "reg_start", "reg_end", "consult_start", "consult_end",
+                "carryout_start", "carryout_end", "updated_at"]:
         if col in df.columns:
             df[col] = safe_to_datetime(df[col])
 
@@ -158,7 +164,11 @@ def get_dashboard_data(range: str = DEFAULT_RANGE):
     try:
         data = fetch_supabase_table(
             "patients",
-            select="id,created_at,patientNum,service,status,reg_start,reg_end,consult_start,consult_end,cubicleNum",
+            select=(
+                "id,created_at,patientNum,service,status,"
+                "reg_start,reg_end,consult_start,consult_end,"
+                "carryout_start,carryout_end,cubicleNum,is_historical"
+            ),
             start_date=start_date,
             end_date=end_date,
         )
@@ -196,10 +206,12 @@ def get_empty_data():
         "hourly_pattern": [],
         "service_distribution": [],
         "bottleneck_analysis": {
+            "stages": [],
+            "primary_bottleneck": None,
+            "system_status": "No Data",
             "bottleneck_stage": None,
             "avg_wait_registration_min": 0,
             "avg_wait_consultation_min": 0,
-            "system_status": "No Data"
         },
         "queue_theory": {
             "arrival_rate_lambda": 0,

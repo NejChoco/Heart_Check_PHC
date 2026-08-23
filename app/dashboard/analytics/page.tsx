@@ -3,6 +3,7 @@
 import { useAnalyticsData } from "@/app/dashboard/analytics/hooks/useAnalyticsData";
 import { getLRRaw, getARIMARaw, prepareLRChartData, prepareARIMAChartData, getTrendColor, getTrendBg } from "@/utils/chartDataPrep";
 import MetricCardsRow from "@/app/dashboard/analytics/components/MetricCardShow";
+import BottleneckStageTable from "@/app/dashboard/analytics/components/BottleneckStageTable";
 import VolumeAndWaitCharts from "@/app/dashboard/analytics/components/VolumeAndWaitCharts";
 import LRForecast from "@/app/dashboard/analytics/components/LRForecast";
 import ArimaForecast from "@/app/dashboard/analytics/components/ArimaForecast";
@@ -60,6 +61,8 @@ export default function AdminDashboard() {
         </div>
 
         <MetricCardsRow data={data} />
+
+        <BottleneckStageTable stages={data.bottleneck_analysis?.stages || []} />
 
         <VolumeAndWaitCharts
           dailySummary={data.daily_summary || []}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Service } from "@/types/Services";
-import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import ConfirmationModal from "@/components/modals/ConfirmationModal";
 
 interface Props {
   service: Service;
@@ -16,10 +16,13 @@ interface Props {
   onSkipConfirm: () => void;
   onContinueCancel: () => void;
   onSkipCancel: () => void;
+  href: string;
+  label?: string;
 }
 
+
 export default function ContinueButton({
-  disabled, onContinue, onSkip, service, phone, showContinueModal, showSkipModal, onContinueConfirm, onSkipConfirm, onContinueCancel, onSkipCancel
+  disabled, onContinue, onSkip, service, phone, showContinueModal, showSkipModal, onContinueConfirm, onSkipConfirm, onContinueCancel, onSkipCancel, href, label
 }: Props) {
   return (
     <div className="w-full flex flex-col gap-[1.5vh] mt-auto">
@@ -31,8 +34,12 @@ export default function ContinueButton({
         Magpatuloy - Continue
       </button>
 
+
+      {/* back button on new patient doesn't go back to the new patient kiosk service selection */}
       <div className="flex gap-[2vw]">
-        <Link href="/kiosk/kiosk-services" className="flex-1 text-center py-[1vh] border-[0.3vh] border-gray-400 text-gray-500 font-bold rounded-[16px] text-[min(2vh,40px)] active:scale-95 transition-all">
+        <Link 
+          href={href} 
+          className="flex-1 text-center py-[1vh] border-[0.3vh] border-gray-400 text-gray-500 font-bold rounded-[16px] text-[min(2vh,40px)] active:scale-95 transition-all">
           Bumalik - Cancel
         </Link>
 

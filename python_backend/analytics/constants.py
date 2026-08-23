@@ -12,7 +12,13 @@ MAX_PEDIA_CUBICLES  = 5    # 1 room × 5 cubicles (default)
 
 # OPD time targets (from scope of study)
 OPD_TARGET_MINUTES  = 150   # 2 hrs 30 min total stay target
-OVERWHELMED_MINUTES = 30    # per-stage alert threshold
+
+# Bottleneck severity tiers — per-stage average wait thresholds (minutes).
+# Normal:      avg <= OVERWHELMED_MINUTES
+# Elevated:    OVERWHELMED_MINUTES < avg <= CRITICAL_MINUTES
+# Overwhelmed: avg > CRITICAL_MINUTES
+OVERWHELMED_MINUTES = 30    # Normal -> Elevated threshold (unchanged, still used elsewhere)
+CRITICAL_MINUTES    = 60    # Elevated -> Overwhelmed threshold (2x baseline)
 
 # Forecasting defaults
 EMA_ALPHA    = 0.3

@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 
-interface KisokBackButtonProps {
+interface KioskBackButtonProps {
     href: string;
     label?: string;
 }
 
-export default function KioskBackButton({ href, label }: KisokBackButtonProps) {
+export default function KioskBackButton({ href, label }: KioskBackButtonProps) {
     return (
         <Link
             href={href}
