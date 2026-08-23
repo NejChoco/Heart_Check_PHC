@@ -11,8 +11,11 @@ import HistoricalContextBanner from '@/app/dashboard/components/HistoricalContex
 import LiveQueueTable from '@/app/dashboard/components/LiveQueueTable';
 import ServiceStats from '@/app/dashboard/components/ServiceStats';
 import HourlyArrivalsChart from '@/app/dashboard/components/HourlyArrivalChart';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+
 
 export default function DashboardPage() {
+  useIdleTimeout();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);

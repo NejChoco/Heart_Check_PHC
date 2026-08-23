@@ -24,6 +24,8 @@ type OPScreeningFlowProps = {
   dragOverCounter: number | null;
   onRegDragStart: (e: React.MouseEvent, patient: Patient) => void;
   cubicleDoctorMap?: Record<string, string>;
+  onReleaseFromCounter: (patient: Patient) => void;
+  onAssignNow: (patient: Patient) => void;
 };
 
 export function OPScreeningFlow({
@@ -46,6 +48,8 @@ export function OPScreeningFlow({
   dragOverCounter,
   onRegDragStart,
   cubicleDoctorMap = {},
+  onReleaseFromCounter,
+  onAssignNow,
 }: OPScreeningFlowProps) {
 
   if (!selectedRoom) {
@@ -81,39 +85,43 @@ export function OPScreeningFlow({
 
   return (
     <>
-      <OnProgressSection
-        patients={visibleOnProgress}
-        isDraggable={isDragEnabled}
-        selectedCategory="OPD Screening"
-        draggedPatientId={draggedPatient?.id}
-        onDragStart={onDragStartFromQueue}
-        onSpeak={onSpeak}
-        speakingId={speaking}
-      />
-      <div className="grid grid-cols-5 gap-3 mt-4">
-        {visibleCubicles.map(cubicle => (
-          <CubicleCard
-          key={cubicle.id}
-          cubicle={cubicle}
-          assigned={assignedPatients[cubicle.cubicleNum] || []}
-          isOver={dragOverCubicle === cubicle.cubicleNum}
-          isDraggable={isDragEnabled}
-          isFull={(assignedPatients[cubicle.cubicleNum]?.length || 0) >= 5}
-          onDragStart={onDragStartFromCubicle}
-          onSpeak={onSpeak}
-          onMoveBack={onMoveBackToProgress}
-          draggedPatientId={draggedPatient?.id}
-          speakingId={speaking}
-          doctorName={cubicleDoctorMap[cubicle.cubicleNum]}
-        />
-        ))}
-      </div>
       <RegistrationCounterSection
         patients={registrationPatients}
         draggedPatient={regDraggedPatient}
         dragOverCounter={dragOverCounter}
         onDragStart={onRegDragStart}
+        onRelease={onReleaseFromCounter}
       />
+      <div className="mt-4">
+        <OnProgressSection
+          patients={visibleOnProgress}
+          isDraggable={isDragEnabled}
+          selectedCategory="OPD Screening"
+          draggedPatientId={draggedPatient?.id}
+          onDragStart={onDragStartFromQueue}
+          onSpeak={onSpeak}
+          onAssignNow={onAssignNow}
+          speakingId={speaking}
+        />
+      </div>
+      <div className="grid grid-cols-5 gap-3 mt-4">
+        {visibleCubicles.map(cubicle => (
+          <CubicleCard
+            key={cubicle.id}
+            cubicle={cubicle}
+            assigned={assignedPatients[cubicle.cubicleNum] || []}
+            isOver={dragOverCubicle === cubicle.cubicleNum}
+            isDraggable={isDragEnabled}
+            isFull={(assignedPatients[cubicle.cubicleNum]?.length || 0) >= 5}
+            onDragStart={onDragStartFromCubicle}
+            onSpeak={onSpeak}
+            onMoveBack={onMoveBackToProgress}
+            draggedPatientId={draggedPatient?.id}
+            speakingId={speaking}
+            doctorName={cubicleDoctorMap[cubicle.cubicleNum]}
+          />
+        ))}
+      </div>
     </>
   );
 }

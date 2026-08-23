@@ -48,6 +48,7 @@ export function useDragAndDrop(
     const isManual = !!patient.service && MANUAL_SERVICES.includes(patient.service);
 
     if (isManual) {
+      const cooldownUntil = new Date(Date.now() + 60 * 1000).toISOString(); 
       
       setAssignedPatients(prev => ({
         ...prev,
@@ -61,7 +62,8 @@ export function useDragAndDrop(
         {
           ...patient,
           cubicleNum: null,
-          status: "On Progress"
+          status: "On Progress",
+          cooldown_until: cooldownUntil,
         }
       ]);
 
@@ -70,7 +72,8 @@ export function useDragAndDrop(
         {
           ...patient,
           cubicleNum: null,
-          status: "On Progress"
+          status: "On Progress",
+          cooldown_until: cooldownUntil,
         }
       ]);
       return;

@@ -6,8 +6,8 @@ type RegistrationCounterSectionProps = {
   draggedPatient: Patient | null;
   dragOverCounter: number | null;
   onDragStart: (e: React.MouseEvent, patient: Patient) => void;
+  onRelease: (patient: Patient) => void;
 };
-
 
 const DEFAULT_COUNTERS = [1, 2, 3, 4, 5];
 
@@ -16,6 +16,7 @@ export function RegistrationCounterSection({
   draggedPatient,
   dragOverCounter,
   onDragStart,
+  onRelease,
 }: RegistrationCounterSectionProps) {
 
   const counters = DEFAULT_COUNTERS;
@@ -72,6 +73,16 @@ export function RegistrationCounterSection({
                   </span>
                   <span className="text-gray-400 text-xs">{p.service}</span>
                   <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-green-400' : 'bg-gray-200'}`} />
+
+                  {i === 0 && (
+                    <button
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={() => onRelease(p)}
+                      className="mt-1 text-[10px] font-semibold uppercase tracking-wide bg-blue-500 text-white rounded-lg py-1.5 hover:bg-blue-600 transition"
+                    >
+                      Send to Queue →
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

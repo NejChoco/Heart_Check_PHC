@@ -3,6 +3,8 @@
 import { supabase } from "@/lib/supabase"
 import { useEffect, useState } from "react"
 import { SettingsPanel } from './components/SettingsPannel';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { useRequireAuth } from './hooks/useRequireAuth';
 
 interface User {
   auth_id: string
@@ -13,6 +15,8 @@ interface User {
 }
 
 export default function SuperAdminPage() {
+  const checking = useRequireAuth();
+  useIdleTimeout();
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -168,6 +172,14 @@ export default function SuperAdminPage() {
     } finally {
       setFormLoading(false)
     }
+  }
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
+      </div>
+    );
   }
 
   const handleEdit = (user: User) => {

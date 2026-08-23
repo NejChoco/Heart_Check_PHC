@@ -10,6 +10,7 @@ type OnProgressSectionProps = {
   draggedPatientId?: number;
   onDragStart: (e: React.MouseEvent, patient: Patient) => void;
   onSpeak: (text: string, patientId: number) => void;
+  onAssignNow: (patient: Patient) => void;
   speakingId?: number | null;
   warnAfterSeconds?: number;
 };
@@ -21,6 +22,7 @@ export function OnProgressSection({
   draggedPatientId,
   onDragStart,
   onSpeak,
+  onAssignNow,
   speakingId,
   warnAfterSeconds,
 }: OnProgressSectionProps) {
@@ -75,13 +77,27 @@ export function OnProgressSection({
                       onSpeak(`Number ${letter} ${digits}, Number ${letter} ${digits}, go to the ${selectedCategory || 'consultation'} area`, p.id);
                     }}
                     disabled={speakingId === p.id}
-                    className={`w-full flex items-center justify-center gap-1 py-1 rounded-xl text-xs font-medium transition ${
+                    className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-xl text-xs font-medium transition ${
                       speakingId === p.id ? 'bg-blue-100 text-blue-300 cursor-not-allowed' : 'bg-blue-50 hover:bg-blue-100 text-blue-500'
                     }`}
                   >
                     <i className={`bx ${speakingId === p.id ? 'bx-loader-alt animate-spin' : 'bxs-volume-full'} text-xs`}></i>
                     <span>Call</span>
                   </button>
+
+                  {isDraggable && (
+                    <button
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAssignNow(p);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1 py-1 rounded-xl text-xs font-medium transition bg-green-50 hover:bg-green-100 text-green-600"
+                    >
+                      <i className="bx bx-check-circle text-xs"></i>
+                      <span>Assign</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

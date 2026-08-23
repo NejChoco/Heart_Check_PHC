@@ -12,8 +12,13 @@ import { useRealtimeSubscription } from './hooks/useRealtimeSubscription';
 import { useBottleneckNotifications } from '@/app/dashboard/hooks/useBottleneckNotifications';
 import NotificationDropdown from '@/app/dashboard/components/NotificationDropdown';
 import { CarryoutSection } from './components/CarryoutSection';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { useRequireAuth } from './hooks/useRequireAuth';
+
 
 export default function NursePage() {
+  const checking = useRequireAuth();
+  useIdleTimeout();
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState<number | null>(null);
@@ -152,6 +157,14 @@ export default function NursePage() {
     });
     return counts;
   };
+
+    if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

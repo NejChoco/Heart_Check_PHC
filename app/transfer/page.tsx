@@ -19,8 +19,13 @@ import { Patient } from '@/types/Types';
 import { useAutoRotate } from './hooks/useAutoRotate';
 import { useRotateTimeout } from './hooks/useRotateTimeout';
 import { DoctorsModal } from './components/DoctorsModal';
+import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { useRequireAuth } from './hooks/useRequireAuth'; 
+import { MAX_PATIENTS_PER_CUBICLE } from './lib/constants';
 
 export default function TransferPage() {
+  const checking = useRequireAuth();
+  useIdleTimeout();
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
@@ -72,7 +77,9 @@ export default function TransferPage() {
       .from('patients')
       .select('*')
       .in('service', ['Consultation', 'OPD Screening'])
-      .in('status', ['On Progress', 'Waiting'])
+      .not('counter', 'is', null)
+      .is('reg_end', null)
+      .neq('status', 'Assigned')
       .gte('created_at', today.toISOString())
       .lt('created_at', tomorrow.toISOString())
       .order('counter', { ascending: true, nullsFirst: false })
@@ -186,11 +193,73 @@ export default function TransferPage() {
     } catch { setSpeaking(null); }
   };
 
+    const handleAssignNow = (patient: Patient) => {
+    if (!patient.service) return;
+
+    const serviceCubicles = cubicles.filter(c => c.category === patient.service);
+
+    let bestCubicle: typeof serviceCubicles[number] | null = null;
+    let bestCount = Infinity;
+
+    for (const cubicle of serviceCubicles) {
+      const count = assignedPatients[cubicle.cubicleNum]?.length || 0;
+      if (count < MAX_PATIENTS_PER_CUBICLE && count < bestCount) {
+        bestCubicle = cubicle;
+        bestCount = count;
+      }
+    }
+
+    if (!bestCubicle) {
+      console.warn('No available cubicle to assign this patient right now.');
+      return;
+    }
+
+    const now = new Date().toISOString();
+
+    setOnProgressPatients(prev => prev.filter(p => p.id !== patient.id));
+
+    setAssignedPatients(prev => ({
+      ...prev,
+      [bestCubicle!.cubicleNum]: [
+        ...(prev[bestCubicle!.cubicleNum] || []),
+        { ...patient, cubicleNum: bestCubicle!.cubicleNum, status: 'Assigned', called_at: now },
+      ],
+    }));
+
+    setPendingUpdates(prev => [
+      ...prev.filter(p => p.id !== patient.id),
+      { ...patient, cubicleNum: bestCubicle!.cubicleNum, status: 'Assigned', called_at: now },
+    ]);
+  };
+
+  const handleReleaseFromCounter = async (patient: Patient) => {
+        const now = new Date().toISOString();
+
+        setRegistrationPatients(prev => prev.filter(p => p.id !== patient.id));
+
+        const { error } = await supabase
+          .from('patients')
+          .update({ reg_end: now })
+          .eq('id', patient.id);
+
+        if (error) {
+          console.error('Failed to release patient from counter:', error);
+
+          fetchRegistrationPatients();
+          return;
+        }
+
+        setOnProgressPatients(prev =>
+          prev.map(p => (p.id === patient.id ? { ...p, reg_end: now } : p))
+        );
+      };
+
       const handleConfirm = async () => {
         if (pendingUpdates.length === 0 || savingPendingUpdates.current) return;
 
         savingPendingUpdates.current = true;
         setIsSyncing(true);
+
       try {
         const now = new Date().toISOString();
 
@@ -203,6 +272,7 @@ export default function TransferPage() {
             patient.called_at ??
             (patient.status === "Assigned" ? now : null),
           queue_position: 9999,
+          cooldown_until: patient.cooldown_until ?? null,
         }));
 
         await supabase.from("patients").upsert(patientUpdates, { onConflict: "id" });
@@ -291,16 +361,17 @@ export default function TransferPage() {
     return [];
   };
 
-  const visibleCubicles = getVisibleCubicles();
-  const rooms = getAvailableRooms();
+    const visibleCubicles = getVisibleCubicles();
+    const rooms = getAvailableRooms();
 
-  const visibleOnProgress = onProgressPatients.filter(p => {
-    if (!selectedCategory) return true;
-    if (isConsultation) return p.service === 'Consultation';
-    if (isOPScreening) return p.service === 'OPD Screening';
-    return p.service === selectedCategory;
-  });
+    const visibleOnProgress = onProgressPatients.filter(p => {
+      if (!selectedCategory) return true;
+      if (isConsultation) return p.service === 'Consultation';
+      if (isOPScreening) return p.service === 'OPD Screening';
+      return p.service === selectedCategory;
+    });
 
+    
   const queueCounts = {
     'Consultation': onProgressPatients.filter(p => p.service === 'Consultation').length,
     'OPD Screening': onProgressPatients.filter(p => p.service === 'OPD Screening').length,
@@ -327,6 +398,14 @@ export default function TransferPage() {
 
     initialize();
   }, []);
+
+  if (checking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="w-10 h-10 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
 
   if (isLoading) {
@@ -377,6 +456,8 @@ export default function TransferPage() {
           dragOverCounter={dragOverCounter}
           onRegDragStart={handleRegDragStart}
           cubicleDoctorMap={cubicleDoctorMap}
+          onReleaseFromCounter={handleReleaseFromCounter}
+          onAssignNow={handleAssignNow}
         />
       );
     }
@@ -402,6 +483,8 @@ export default function TransferPage() {
           regDraggedPatient={regDraggedPatient}
           dragOverCounter={dragOverCounter}
           onRegDragStart={handleRegDragStart}
+          onReleaseFromCounter={handleReleaseFromCounter}
+          onAssignNow={handleAssignNow}
         />
       );
     }

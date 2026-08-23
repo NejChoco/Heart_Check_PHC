@@ -63,6 +63,7 @@ export type Patient = {
   subcategory?: string | null;
   carryout_start?: string | null;
   carryout_end?: string | null;
+  cooldown_until?: string | null;
 };
 
 export type Cubicle = {

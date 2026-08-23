@@ -18,6 +18,9 @@ import { supabase } from "@/lib/supabase";
       if (busyRef.current) return;
       busyRef.current = true;
 
+      const isOnCooldown = (p: Patient) =>
+     !!p.cooldown_until && new Date(p.cooldown_until).getTime() > Date.now();
+
     try {
       const dbUpdates: { id: number; cubicleNum: string; status: string; reg_end: string; called_at: string; queue_position: number }[] = [];
       const allAssignedIds: number[] = [];
@@ -25,7 +28,14 @@ import { supabase } from "@/lib/supabase";
 
       for (const service of AUTO_ASSIGN_SERVICES) {
         const availableCubicles = cubicles.filter(c => c.category === service);
-        const waitingPatients = onProgressPatients.filter(p => p.service === service);
+        const waitingPatients = onProgressPatients.filter(p => {
+          if (p.service !== service) return false;
+          if ((service === 'Consultation' || service === 'OPD Screening') && !p.reg_end) {
+            return false;
+          }
+          if (isOnCooldown(p)) return false;
+          return true;
+        });
 
         const availableSpots: { cubicle: Cubicle; currentCount: number }[] = [];
         for (const cubicle of availableCubicles) {
@@ -90,6 +100,8 @@ import { supabase } from "@/lib/supabase";
       const consultationPreferred = onProgressPatients.filter(
         (patient) =>
           patient.service === "Consultation" &&
+          patient.reg_end &&
+          !isOnCooldown(patient) &&
           patient.subcategory &&
           patient.preferredCubicleNums &&
           patient.preferredCubicleNums.length > 0

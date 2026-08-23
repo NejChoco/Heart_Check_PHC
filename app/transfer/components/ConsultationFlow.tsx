@@ -1,5 +1,5 @@
 'use client';
-import { Cubicle } from '@/types/Types';
+import { Cubicle, Patient } from '@/types/Types';
 import { CubicleCard } from './CubicleCard';
 import { OnProgressSection } from './OnProgressSection';
 import { CONSULTATION_SUBCATEGORIES } from '../lib/constants';
@@ -27,6 +27,8 @@ type ConsultationFlowProps = {
   onMoveBackToProgress: (patient: any, cubicleNum: string) => void;
   isDragEnabled: boolean;
   cubicleDoctorMap?: Record<string, string>;
+  onReleaseFromCounter: (patient: Patient) => void;
+  onAssignNow: (patient: Patient) => void;
 };
 
 export function ConsultationFlow({
@@ -51,6 +53,8 @@ export function ConsultationFlow({
   onMoveBackToProgress,
   isDragEnabled,
   cubicleDoctorMap = {},
+  onReleaseFromCounter,
+  onAssignNow,
 }: ConsultationFlowProps) {
   if (!selectedSubcategory) {
     return (
@@ -91,40 +95,43 @@ export function ConsultationFlow({
 
   return (
     <>
-      <OnProgressSection
-        patients={visibleOnProgress}
-        isDraggable={isDragEnabled}
-        selectedCategory="Consultation"
-        draggedPatientId={draggedPatient?.id}
-        onDragStart={onDragStartFromQueue}
-        onSpeak={onSpeak}
-        speakingId={speaking}
+      <RegistrationCounterSection
+        patients={registrationPatients}
+        draggedPatient={regDraggedPatient}
+        dragOverCounter={dragOverCounter}
+        onDragStart={onRegDragStart}
+        onRelease={onReleaseFromCounter}
       />
+      <div className="mt-4">
+        <OnProgressSection
+          patients={visibleOnProgress}
+          isDraggable={isDragEnabled}
+          selectedCategory="Consultation"
+          draggedPatientId={draggedPatient?.id}
+          onDragStart={onDragStartFromQueue}
+          onSpeak={onSpeak}
+          onAssignNow={onAssignNow}
+          speakingId={speaking}
+        />
+      </div>
       <div className="grid grid-cols-5 gap-3 mt-4">
         {visibleCubicles.map(cubicle => (
-        <CubicleCard
-          key={cubicle.id}
-          cubicle={cubicle}
-          assigned={assignedPatients[cubicle.cubicleNum] || []}
-          isOver={dragOverCubicle === cubicle.cubicleNum}
-          isDraggable={isDragEnabled}
-          isFull={(assignedPatients[cubicle.cubicleNum]?.length || 0) >= 5}
-          onDragStart={onDragStartFromCubicle}
-          onSpeak={onSpeak}
-          onMoveBack={onMoveBackToProgress}
-          draggedPatientId={draggedPatient?.id}
-          speakingId={speaking}
-          doctorName={cubicleDoctorMap[cubicle.cubicleNum]}
-        />
+          <CubicleCard
+            key={cubicle.id}
+            cubicle={cubicle}
+            assigned={assignedPatients[cubicle.cubicleNum] || []}
+            isOver={dragOverCubicle === cubicle.cubicleNum}
+            isDraggable={isDragEnabled}
+            isFull={(assignedPatients[cubicle.cubicleNum]?.length || 0) >= 5}
+            onDragStart={onDragStartFromCubicle}
+            onSpeak={onSpeak}
+            onMoveBack={onMoveBackToProgress}
+            draggedPatientId={draggedPatient?.id}
+            speakingId={speaking}
+            doctorName={cubicleDoctorMap[cubicle.cubicleNum]}
+          />
         ))}
       </div>
-
-      <RegistrationCounterSection
-      patients={registrationPatients}
-      draggedPatient={regDraggedPatient}
-      dragOverCounter={dragOverCounter}
-      onDragStart={onRegDragStart}
-      />
     </>
   );
 }
