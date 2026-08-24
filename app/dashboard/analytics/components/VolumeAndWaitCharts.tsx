@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   ComposedChart, Line, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer,
+  CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import AnalyticsMetricCards from "@/components/reusables/analyticsMetricCards";
 
@@ -40,6 +40,17 @@ function withMovingAverage(data: any[], windowSize: number) {
   });
 }
 
+// One line per queue stage — same stage set and colors implied by the
+// Queue Stage Breakdown table, so a person can visually connect "which
+// stage" across both views.
+const STAGE_LINES: { dataKey: string; name: string; color: string }[] = [
+  { dataKey: "avg_wait_registration",    name: "Kiosk → Registration wait",        color: "#f59e0b" },
+  { dataKey: "avg_service_registration", name: "Registration duration",            color: "#3b82f6" },
+  { dataKey: "avg_wait_consultation",    name: "Registration → Consultation wait", color: "#ef4444" },
+  { dataKey: "avg_service_consultation", name: "Consultation duration",            color: "#8b5cf6" },
+  { dataKey: "avg_service_carryout",     name: "Carryout duration",                color: "#10b981" },
+];
+
 export default function VolumeAndWaitCharts({ dailySummary, hourlyPattern }: Props) {
   const isDark = useIsDarkMode();
   const volumeData = withMovingAverage(dailySummary, 7);
@@ -57,9 +68,17 @@ export default function VolumeAndWaitCharts({ dailySummary, hourlyPattern }: Pro
     color: isDark ? '#e5e7eb' : '#111827',
   };
   const gridStroke = isDark ? '#374151' : '#e5e7eb';
+  const legendTextColor = isDark ? '#9ca3af' : '#6b7280';
+
+  // Only plot stages that actually have at least one non-zero value in
+  // this range — an all-zero line (e.g. carryout never selected upstream)
+  // just adds legend noise without conveying anything.
+  const activeStageLines = STAGE_LINES.filter((stage) =>
+    hourlyPattern.some((row) => Number(row[stage.dataKey]) > 0)
+  );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
       <AnalyticsMetricCards>
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
           <h2 className="text-xl font-extrabold text-gray-800 dark:text-gray-200">
@@ -107,18 +126,33 @@ export default function VolumeAndWaitCharts({ dailySummary, hourlyPattern }: Pro
         <h2 className="text-xl font-extrabold mb-6 text-gray-800 dark:text-gray-200">
           Hourly Wait Time Distribution
         </h2>
-        <div className="h-64">
+        <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={hourlyPattern}>
+            <ComposedChart data={hourlyPattern} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridStroke} />
               <XAxis dataKey="time_label" tick={{ fontSize: 10 }} angle={-35} textAnchor="end" height={48} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip cursor={tooltipCursor} contentStyle={tooltipContentStyle} />
-              <Line
-                type="monotone" dataKey="avg_wait_consultation"
-                stroke="#ef4444" strokeWidth={3} dot={{ r: 4 }}
-                name="Avg wait (min)"
+              <YAxis tick={{ fontSize: 11 }} label={{ value: 'min', angle: -90, position: 'insideLeft', fontSize: 10, fill: legendTextColor }} />
+              <Tooltip
+                cursor={tooltipCursor}
+                contentStyle={tooltipContentStyle}
+                formatter={(value, name) => [`${value} min`, name]}
               />
+              <Legend
+                wrapperStyle={{ fontSize: '10px', fontWeight: 600, color: legendTextColor }}
+                iconType="line"
+              />
+              {activeStageLines.map((stage) => (
+                <Line
+                  key={stage.dataKey}
+                  type="monotone"
+                  dataKey={stage.dataKey}
+                  stroke={stage.color}
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  name={stage.name}
+                  connectNulls
+                />
+              ))}
             </ComposedChart>
           </ResponsiveContainer>
         </div>

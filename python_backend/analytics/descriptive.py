@@ -27,21 +27,46 @@ def daily_summary(df: pd.DataFrame) -> pd.DataFrame:
         .round(2)
     )
 
-# Shows which are the busiest hours of the day, and how wait times vary by hour. 
-# This can help identify peak times and potential staffing needs.
+# Shows which are the busiest hours of the day, and how wait times vary by hour,
+# broken down per queue stage (kiosk→registration, registration duration,
+# registration→consultation wait, consultation duration, carryout duration).
+# This lets the dashboard show WHICH stage is slow at WHICH hour, rather than
+# one blended number that hides which part of the flow backs up when.
 def hourly_pattern(df: pd.DataFrame) -> pd.DataFrame:
-    """Average patients and wait time per hour of day."""
-    return (
-        df.groupby('hour').agg(
-            avg_patients          = ('patient_id',        'count'),
-            avg_wait_consultation = ('wait_consultation', 'mean'),
-        )
+    """Average patient count and per-stage average duration/wait, per hour of day."""
+
+    # Same 5 stages used in bottleneck_report — kept in sync so the hourly
+    # chart and the Queue Stage Breakdown table always describe the same
+    # pipeline.
+    stage_cols = {
+        "avg_wait_registration"    : "wait_registration",
+        "avg_service_registration" : "service_registration",
+        "avg_wait_consultation"    : "wait_consultation",
+        "avg_service_consultation" : "service_consultation",
+        "avg_service_carryout"     : "service_carryout",
+    }
+
+    agg_kwargs = {"avg_patients": ("patient_id", "count")}
+    for out_col, src_col in stage_cols.items():
+        if src_col in df.columns:
+            agg_kwargs[out_col] = (src_col, "mean")
+
+    result = (
+        df.groupby("hour").agg(**agg_kwargs)
         .reset_index()
-        .assign(time_label=lambda d: d['hour'].astype(int).apply(
+        .assign(time_label=lambda d: d["hour"].astype(int).apply(
             lambda h: f"{h:02d}:00–{h+1:02d}:00"
         ))
-        .round(2)
     )
+
+    # Guarantee every stage column exists even if its source column wasn't
+    # in df (e.g. carryout not selected upstream) — keeps the frontend's
+    # line list stable instead of a line silently disappearing.
+    for out_col in stage_cols:
+        if out_col not in result.columns:
+            result[out_col] = 0.0
+
+    return result.round(2)
 
 
 def _classify_level(avg_minutes: float) -> str:
