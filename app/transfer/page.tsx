@@ -29,6 +29,7 @@ export default function TransferPage() {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+const [selectedOPSubcategory, setSelectedOPSubcategory] = useState<string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
   const [speaking, setSpeaking] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -334,8 +335,10 @@ export default function TransferPage() {
         c.category === selectedCategory && c.subcategory === selectedSubcategory
       );
       return [...new Set(filteredCubicles.map(c => c.room))].sort();
-    } else if (isOPScreening) {
-      const filteredCubicles = cubicles.filter(c => c.category === selectedCategory);
+    } else if (isOPScreening && selectedOPSubcategory) {
+      const filteredCubicles = cubicles.filter(c =>
+        c.category === selectedCategory && c.subcategory === selectedOPSubcategory
+      );
       return [...new Set(filteredCubicles.map(c => c.room))].sort();
     } else if (!isConsultation && !isOPScreening && selectedCategory) {
       const filteredCubicles = cubicles.filter(c => c.category === selectedCategory);
@@ -351,9 +354,11 @@ export default function TransferPage() {
         c.subcategory === selectedSubcategory &&
         c.room === selectedRoom
       );
-    } else if (isOPScreening && selectedRoom) {
+    } else if (isOPScreening && selectedOPSubcategory && selectedRoom) {
       return cubicles.filter(c =>
-        c.category === selectedCategory && c.room === selectedRoom
+        c.category === selectedCategory &&
+        c.subcategory === selectedOPSubcategory &&
+        c.room === selectedRoom
       );
     } else if (!isConsultation && !isOPScreening && selectedCategory) {
       return cubicles.filter(c => c.category === selectedCategory);
@@ -366,9 +371,31 @@ export default function TransferPage() {
 
     const visibleOnProgress = onProgressPatients.filter(p => {
       if (!selectedCategory) return true;
-      if (isConsultation) return p.service === 'Consultation';
-      if (isOPScreening) return p.service === 'OPD Screening';
+      if (isConsultation) {
+        if (p.service !== 'Consultation') return false;
+        if (selectedSubcategory) return p.subcategory === selectedSubcategory;
+        return true;
+      }
+      if (isOPScreening) {
+        if (p.service !== 'OPD Screening') return false;
+        if (selectedOPSubcategory) return p.subcategory === selectedOPSubcategory;
+        return true;
+      }
       return p.service === selectedCategory;
+    });
+
+    const visibleRegistrationPatients = registrationPatients.filter(p => {
+      if (isConsultation) {
+        if (p.service !== 'Consultation') return false;
+        if (selectedSubcategory) return p.subcategory === selectedSubcategory;
+        return true;
+      }
+      if (isOPScreening) {
+        if (p.service !== 'OPD Screening') return false;
+        if (selectedOPSubcategory) return p.subcategory === selectedOPSubcategory;
+        return true;
+      }
+      return true;
     });
 
     
@@ -451,7 +478,7 @@ export default function TransferPage() {
           onSpeak={speak}
           onMoveBackToProgress={handleMoveBackToProgress}
           isDragEnabled={isDragEnabled}
-          registrationPatients={registrationPatients}
+          registrationPatients={visibleRegistrationPatients}
           regDraggedPatient={regDraggedPatient}
           dragOverCounter={dragOverCounter}
           onRegDragStart={handleRegDragStart}
@@ -462,32 +489,34 @@ export default function TransferPage() {
       );
     }
 
-    if (isOPScreening) {
-      return (
-        <OPScreeningFlow
-          selectedRoom={selectedRoom}
-          rooms={rooms}
-          visibleCubicles={visibleCubicles}
-          visibleOnProgress={visibleOnProgress}
-          assignedPatients={assignedPatients}
-          draggedPatient={draggedPatient}
-          dragOverCubicle={dragOverCubicle}
-          speaking={speaking}
-          onSelectRoom={setSelectedRoom}
-          onDragStartFromQueue={handleDragStartFromQueue}
-          onDragStartFromCubicle={handleDragStartFromCubicle}
-          onSpeak={speak}
-          onMoveBackToProgress={handleMoveBackToProgress}
-          isDragEnabled={isDragEnabled}
-          registrationPatients={registrationPatients}
-          regDraggedPatient={regDraggedPatient}
-          dragOverCounter={dragOverCounter}
-          onRegDragStart={handleRegDragStart}
-          onReleaseFromCounter={handleReleaseFromCounter}
-          onAssignNow={handleAssignNow}
-        />
-      );
-    }
+  if (isOPScreening) {
+    return (
+      <OPScreeningFlow
+        selectedSubcategory={selectedOPSubcategory}
+        onSelectSubcategory={setSelectedOPSubcategory}
+        selectedRoom={selectedRoom}
+        rooms={rooms}
+        visibleCubicles={visibleCubicles}
+        visibleOnProgress={visibleOnProgress}
+        assignedPatients={assignedPatients}
+        draggedPatient={draggedPatient}
+        dragOverCubicle={dragOverCubicle}
+        speaking={speaking}
+        onSelectRoom={setSelectedRoom}
+        onDragStartFromQueue={handleDragStartFromQueue}
+        onDragStartFromCubicle={handleDragStartFromCubicle}
+        onSpeak={speak}
+        onMoveBackToProgress={handleMoveBackToProgress}
+        isDragEnabled={isDragEnabled}
+        registrationPatients={visibleRegistrationPatients}
+        regDraggedPatient={regDraggedPatient}
+        dragOverCounter={dragOverCounter}
+        onRegDragStart={handleRegDragStart}
+        onReleaseFromCounter={handleReleaseFromCounter}
+        onAssignNow={handleAssignNow}
+      />
+    );
+  }
 
     return (
       <OtherServicesFlow
@@ -517,6 +546,7 @@ export default function TransferPage() {
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
           setSelectedSubcategory(null);
+          setSelectedOPSubcategory(null);
           setSelectedRoom(null);
         }}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
@@ -555,16 +585,18 @@ export default function TransferPage() {
         <div className="px-8 py-6 h-[calc(100vh-73px)] overflow-y-auto">
           <BreadcrumbNav
             selectedCategory={selectedCategory}
-            selectedSubcategory={selectedSubcategory}
+            selectedSubcategory={isConsultation ? selectedSubcategory : selectedOPSubcategory}
             selectedRoom={selectedRoom}
             isConsultation={isConsultation}
             onReset={() => {
               setSelectedCategory(null);
               setSelectedSubcategory(null);
+              setSelectedOPSubcategory(null);
               setSelectedRoom(null);
             }}
             onResetToCategory={() => {
               setSelectedSubcategory(null);
+              setSelectedOPSubcategory(null);
               setSelectedRoom(null);
             }}
             onResetToSubcategory={() => setSelectedRoom(null)}

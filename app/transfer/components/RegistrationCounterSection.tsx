@@ -54,7 +54,7 @@ export function RegistrationCounterSection({
               {counterPatients.length === 0 && (
                 <p className="text-gray-300 text-xs text-center mt-2">—</p>
               )}
-
+              
               {counterPatients.map((p, i) => (
                 <div
                   key={p.id}
@@ -71,7 +71,10 @@ export function RegistrationCounterSection({
                   <span className={`font-black text-base ${i === 0 ? 'text-[#cc3535]' : 'text-gray-400'}`}>
                     {p.patientNum}
                   </span>
-                  <span className="text-gray-400 text-xs">{p.service}</span>
+                  <span className="text-gray-400 text-xs">
+                    {p.service}
+                    {p.subcategory && ` · ${p.subcategory}`}
+                  </span>
                   <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-green-400' : 'bg-gray-200'}`} />
 
                   {i === 0 && (
