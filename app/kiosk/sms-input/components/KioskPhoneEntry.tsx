@@ -23,9 +23,22 @@ interface Props {
 const MAX = 11;
 
 const SERVICE_PREFIXES: Record<string, string> = {
-  'Consultation': 'C', 'OPD Card': 'O', 'Refill Prescription': 'R', 'ECG': 'E',
-  'Warfarin': 'W', 'OPD Reschedule': 'S', 'Benzathine': 'B', 'OPD Screening': 'P',
+  'OPD Card': 'O', 'Refill Prescription': 'R',
+  'Warfarin': 'W', 'OPD Reschedule': 'S', 'Benzathine': 'B',
 };
+
+type PrefixRule = {
+  match: (serviceName: string, subcategory?: string) => boolean;
+  prefix: string;
+  groupBySubcategory: boolean;
+};
+
+const NUMERIC_PREFIX_RULES: PrefixRule[] = [
+  { match: (s) => s === 'OPD Screening', prefix: '1', groupBySubcategory: false },
+  { match: (s, sub) => s === 'Consultation' && sub === 'Pedia', prefix: '2', groupBySubcategory: true },
+  { match: (s, sub) => s === 'Consultation' && sub === 'Adult', prefix: '4', groupBySubcategory: true },
+  { match: (s) => s === 'ECG', prefix: '5', groupBySubcategory: false },
+];
 
 const createPatientRecord = async (
   service: Service,
@@ -37,15 +50,30 @@ try {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
     const serviceName = service.label_en;
-    const prefix = SERVICE_PREFIXES[serviceName] ?? 'C';
 
-    const { data: lastPatient } = await supabase.from('patients').select('patientNum')
-      .eq('service', serviceName).gte('created_at', startOfDay).lt('created_at', endOfDay)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const rule = NUMERIC_PREFIX_RULES.find(r => r.match(serviceName, subcategory));
+    const prefix = rule ? rule.prefix : (SERVICE_PREFIXES[serviceName] ?? 'C');
+
+    let query = supabase
+      .from('patients')
+      .select('patientNum')
+      .eq('service', serviceName)
+      .gte('created_at', startOfDay)
+      .lt('created_at', endOfDay);
+
+    if (rule?.groupBySubcategory) {
+      query = query.eq('subcategory', subcategory ?? null);
+    }
+
+    const { data: lastPatient } = await query
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     let nextNum = 1;
     if (lastPatient?.patientNum) {
-      const lastNum = parseInt(lastPatient.patientNum.replace(/\D/g, ''));
+      const counterPart = lastPatient.patientNum.slice(prefix.length);
+      const lastNum = parseInt(counterPart, 10);
       if (!isNaN(lastNum)) nextNum = lastNum + 1;
     }
 

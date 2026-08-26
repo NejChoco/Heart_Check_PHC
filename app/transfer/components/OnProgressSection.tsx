@@ -59,7 +59,10 @@ export function OnProgressSection({
                   <span className="text-[#cc3535] font-black text-lg">{p.patientNum}</span>
                   <ElapsedTimer startedAt={p.progress_started_at} warnAfterSeconds={warnAfterSeconds} />
                 </div>
-                <span className="text-gray-500 text-xs font-medium">{p.service}</span>
+                  <span className="text-gray-500 text-xs font-medium">
+                    {p.service}
+                    {p.subcategory && ` · ${p.subcategory}`}
+                  </span>
                 <div className="text-xs">
                   {index < 5 ? (
                     <span className="text-green-600">Position: {index + 1} (Next)</span>

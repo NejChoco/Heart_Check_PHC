@@ -22,11 +22,21 @@ export default function ConfirmationActions({
     onContinue?.();
 
     const isConsultation = service.label_en?.toLowerCase() === "consultation";
+    const isOPDScreening = service.label_en?.toLowerCase() === "opd screening";
 
     if (isConsultation) {
       console.log(`${getTimestamp()} [CONFIRMATION ACCEPTED] Consultation service - Redirecting to cubicle selection - ServiceId: ${service.id}`);
       router.push(
         `/kiosk/consultation-category?serviceId=${service.id}${
+          patientType ? `&type=${patientType}` : ""
+        }`);
+      return;
+    }
+
+    if (isOPDScreening) {
+      console.log(`${getTimestamp()} [CONFIRMATION ACCEPTED] OPD Screening service - Redirecting to category selection - ServiceId: ${service.id}`);
+      router.push(
+        `/kiosk/opd-screening-category?serviceId=${service.id}${
           patientType ? `&type=${patientType}` : ""
         }`);
       return;

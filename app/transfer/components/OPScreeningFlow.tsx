@@ -5,6 +5,8 @@ import { OnProgressSection } from './OnProgressSection';
 import { RegistrationCounterSection } from './RegistrationCounterSection';
 
 type OPScreeningFlowProps = {
+  selectedSubcategory: string | null;
+  onSelectSubcategory: (sub: string) => void;
   selectedRoom: number | null;
   rooms: number[];
   visibleCubicles: Cubicle[];
@@ -29,6 +31,8 @@ type OPScreeningFlowProps = {
 };
 
 export function OPScreeningFlow({
+  selectedSubcategory,
+  onSelectSubcategory,
   selectedRoom,
   rooms,
   visibleCubicles,
@@ -52,13 +56,34 @@ export function OPScreeningFlow({
   onAssignNow,
 }: OPScreeningFlowProps) {
 
+  if (!selectedSubcategory) {
+    return (
+      <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mt-8">
+        <button onClick={() => onSelectSubcategory('Adult')}
+          className="bg-white border-2 border-gray-100 hover:border-red-200 rounded-3xl p-6 flex flex-col gap-2 shadow-sm transition text-left">
+          <div className="w-10 h-10 bg-red-50 rounded-2xl flex items-center justify-center">
+            <i className="bx bx-male text-xl text-[#cc3535]"></i>
+          </div>
+          <span className="text-gray-700 font-semibold text-sm">Adult</span>
+        </button>
+        <button onClick={() => onSelectSubcategory('Pedia')}
+          className="bg-white border-2 border-gray-100 hover:border-red-200 rounded-3xl p-6 flex flex-col gap-2 shadow-sm transition text-left">
+          <div className="w-10 h-10 bg-red-50 rounded-2xl flex items-center justify-center">
+            <i className="bx bx-child text-xl text-[#cc3535]"></i>
+          </div>
+          <span className="text-gray-700 font-semibold text-sm">Pedia</span>
+        </button>
+      </div>
+    );
+  }
+
   if (!selectedRoom) {
     if (rooms.length === 0) {
       return (
         <div className="bg-yellow-50 border-2 border-yellow-200 rounded-3xl p-8 text-center">
           <i className="bx bx-info-circle text-4xl text-yellow-500 mb-2 block"></i>
-          <p className="text-gray-600 font-medium">No rooms configured for OPD Screening</p>
-          <p className="text-gray-400 text-sm mt-1">Please add cubicles with category "OPD Screening" to the database</p>
+          <p className="text-gray-600 font-medium">No rooms configured for OPD Screening ({selectedSubcategory})</p>
+          <p className="text-gray-400 text-sm mt-1">Please add cubicles with category "OPD Screening" and subcategory "{selectedSubcategory}" to the database</p>
         </div>
       );
     }
