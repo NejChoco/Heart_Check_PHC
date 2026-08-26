@@ -8,7 +8,13 @@ import pandas as pd
 import numpy as np
 import math
 from .preprocessing  import preprocess_queue_data
-from .descriptive    import daily_summary, hourly_pattern, bottleneck_report, service_distribution
+from .descriptive    import (
+    daily_summary,
+    hourly_pattern,
+    bottleneck_report,
+    service_distribution,
+    phc_compliance_summary,
+)
 from .queue_metrics  import (
     registration_metrics,
     per_cubicle_metrics,
@@ -96,6 +102,12 @@ def generate_report(
         # being computed here on every dashboard-data call.
         "bottleneck_analysis" : bottleneck_report(df_clean),
 
+        # PHC manual tracking-sheet parity summary (Waiting Time / Evaluate /
+        # Examine & Treat / Carry Out Dr's Orders + summary stats) — lets
+        # PHC MIS/UAT staff cross-check the dashboard against their own
+        # paper form for the same date range.
+        "phc_compliance" : phc_compliance_summary(df_clean, opd_hours),
+
         # Queue metrics
         "registration"    : registration_metrics(df_clean),
         "consultation"    : {
@@ -142,6 +154,25 @@ def _empty_report() -> dict:
             "bottleneck_stage": "N/A",
             "avg_wait_registration_min": 0.0,
             "avg_wait_consultation_min": 0.0,
+        },
+        "phc_compliance": {
+            "waiting_time_le": 0,
+            "waiting_time_gt": 0,
+            "evaluate_le": 0,
+            "evaluate_gt": 0,
+            "examine_treat_le": 0,
+            "examine_treat_gt": 0,
+            "carryout_le": 0,
+            "carryout_gt": 0,
+            "avg_total_waiting_time_min": 0.0,
+            "patients_seen": 0,
+            "opd_hours": 8.0,
+            "thresholds_min": {
+                "waiting_time": 150,
+                "evaluate": 30,
+                "examine_treat": 105,
+                "carryout": 15,
+            },
         },
         "registration": {
             "patients_served": 0,

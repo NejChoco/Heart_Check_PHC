@@ -40,6 +40,20 @@ function withMovingAverage(data: any[], windowSize: number) {
   });
 }
 
+// Converts a duration in minutes (e.g. avg_total_time from daily_summary)
+// into "H:MM:SS", matching the format PHC's own paper tracking sheet uses
+// for Average Patient's Total Waiting Time (e.g. "2:13:32").
+function formatMinutesToHMS(totalMinutes: number | undefined | null): string {
+  if (totalMinutes === undefined || totalMinutes === null || isNaN(totalMinutes)) {
+    return "—";
+  }
+  const totalSeconds = Math.round(totalMinutes * 60);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
 // One line per queue stage — same stage set and colors implied by the
 // Queue Stage Breakdown table, so a person can visually connect "which
 // stage" across both views.
@@ -77,6 +91,36 @@ export default function VolumeAndWaitCharts({ dailySummary, hourlyPattern }: Pro
     hourlyPattern.some((row) => Number(row[stage.dataKey]) > 0)
   );
 
+  // Custom tooltip for Patient Volume Trend — adds Average Total Waiting
+  // Time (avg_total_time from daily_summary) alongside the existing
+  // Daily patients / 7-day average figures, per PHC's manual tracking
+  // sheet which reports this same figure.
+  const CustomVolumeTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    const row = payload[0]?.payload;
+    if (!row) return null;
+
+    return (
+      <div style={tooltipContentStyle} className="px-3 py-2.5 text-xs min-w-[190px]">
+        <p className="font-bold mb-1.5">{label}</p>
+        <div className="space-y-1">
+          <p className="flex items-center justify-between gap-4">
+            <span className="text-gray-400">Daily patients</span>
+            <span className="font-semibold">{row.total_patients}</span>
+          </p>
+          <p className="flex items-center justify-between gap-4">
+            <span className="text-gray-400">7-day average</span>
+            <span className="font-semibold">{row.moving_avg}</span>
+          </p>
+          <p className="flex items-center justify-between gap-4 pt-1 mt-1 border-t border-gray-500/20">
+            <span className="text-gray-400">Avg. total waiting time</span>
+            <span className="font-semibold">{formatMinutesToHMS(row.avg_total_time)}</span>
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
       <AnalyticsMetricCards>
@@ -106,7 +150,7 @@ export default function VolumeAndWaitCharts({ dailySummary, hourlyPattern }: Pro
                 height={40}
               />
               <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip cursor={tooltipCursor} contentStyle={tooltipContentStyle} />
+              <Tooltip cursor={tooltipCursor} content={<CustomVolumeTooltip />} />
               <Line
                 type="monotone" dataKey="total_patients"
                 stroke="#93c5fd" strokeWidth={1} dot={false}

@@ -11,7 +11,14 @@ Daily summaries, hourly patterns, and bottleneck detection.
 # analysis (e.g. forecasting, queue metrics, staffing recommendations).
 
 import pandas as pd
-from .constants import OVERWHELMED_MINUTES, CRITICAL_MINUTES
+from .constants import (
+    OVERWHELMED_MINUTES,
+    CRITICAL_MINUTES,
+    WAITING_TIME_TARGET_MINUTES,
+    EVALUATE_TARGET_MINUTES,
+    EXAMINE_TREAT_TARGET_MINUTES,
+    CARRYOUT_TARGET_MINUTES,
+)
 
 # Calculate daily summaries such as patient counts and average wait times per day
 def daily_summary(df: pd.DataFrame) -> pd.DataFrame:
@@ -298,3 +305,67 @@ def monthly_breakdown(df: pd.DataFrame) -> dict:
         result[str(year)] = month_entries
 
     return result
+
+
+# Mirrors PHC's existing manual paper tracking sheet so the dashboard's
+# figures can be directly cross-checked against what OPD staff already
+# tally by hand each day: four "≤ threshold / > threshold" patient
+# buckets (Waiting Time, Evaluate patients, Examine & treat Pts, Carry
+# out Dr's Orders), plus the four summary stats (Avg Total Waiting Time,
+# Patients Seen, Doctors on Duty, Patient-to-Doctor Ratio Per Hour).
+#
+# "Doctors on Duty" is intentionally NOT computed here — the current
+# schema has no reliable per-day doctor-duty record to query, so that
+# number is entered manually on the frontend and the ratio is derived
+# client-side from patients_seen + opd_hours returned below. This keeps
+# the backend from fabricating a number it can't actually verify.
+def phc_compliance_summary(df: pd.DataFrame, opd_hours: float = 8.0) -> dict:
+    """
+    All four buckets are computed over the same patient set — those with
+    a completed total_time — so the ≤/> pairs sum to patients_seen, same
+    as the paper form (e.g. 101 + 30 = 131 patients seen).
+    """
+    has_total_time = 'total_time' in df.columns
+    completed = df[df['total_time'].notna() & (df['total_time'] >= 0)] if has_total_time else df.iloc[0:0]
+    patients_seen = int(len(completed))
+
+    def _bucket(col: str, threshold: float) -> tuple[int, int]:
+        if col not in completed.columns:
+            return 0, 0
+        vals = completed[col].dropna()
+        vals = vals[vals >= 0]
+        le = int((vals <= threshold).sum())
+        gt = int((vals > threshold).sum())
+        return le, gt
+
+    waiting_le, waiting_gt = _bucket('total_time',           WAITING_TIME_TARGET_MINUTES)
+    eval_le,    eval_gt    = _bucket('service_registration', EVALUATE_TARGET_MINUTES)
+    exam_le,    exam_gt    = _bucket('service_consultation', EXAMINE_TREAT_TARGET_MINUTES)
+    carry_le,   carry_gt   = _bucket('service_carryout',     CARRYOUT_TARGET_MINUTES)
+
+    avg_total_waiting = (
+        round(float(completed['total_time'].mean()), 2)
+        if patients_seen > 0 and has_total_time else 0.0
+    )
+
+    return {
+        "waiting_time_le"   : waiting_le,
+        "waiting_time_gt"   : waiting_gt,
+        "evaluate_le"       : eval_le,
+        "evaluate_gt"       : eval_gt,
+        "examine_treat_le"  : exam_le,
+        "examine_treat_gt"  : exam_gt,
+        "carryout_le"       : carry_le,
+        "carryout_gt"       : carry_gt,
+
+        "avg_total_waiting_time_min" : avg_total_waiting,
+        "patients_seen"              : patients_seen,
+        "opd_hours"                  : opd_hours,
+
+        "thresholds_min" : {
+            "waiting_time"  : WAITING_TIME_TARGET_MINUTES,
+            "evaluate"      : EVALUATE_TARGET_MINUTES,
+            "examine_treat" : EXAMINE_TREAT_TARGET_MINUTES,
+            "carryout"      : CARRYOUT_TARGET_MINUTES,
+        },
+    }
