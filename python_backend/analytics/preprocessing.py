@@ -121,7 +121,10 @@ def preprocess_queue_data(df: pd.DataFrame) -> pd.DataFrame:
     df['service_consultation'] = (df['consult_end']    - df['consult_start']).dt.total_seconds() / 60
     df.loc[~consult_end_reached, 'service_consultation'] = pd.NA
 
-    df['total_time']           = (df['consult_end']    - df['kiosk_time']).dt.total_seconds() / 60
+    # NOTE: total_time is intentionally NOT computed here anymore.
+    # It's computed further down, after the carryout block, so it can
+    # include service_carryout when that data is available. See the
+    # "Total time (moved below carryout)" section below.
 
     # Carryout stage — carryout_start/carryout_end were added to the schema
     # alongside is_historical. Only computed if the raw query actually
@@ -146,6 +149,21 @@ def preprocess_queue_data(df: pd.DataFrame) -> pd.DataFrame:
         df['service_carryout'] = (
             df['carryout_end'] - df['carryout_start']
         ).dt.total_seconds() / 60
+
+    # ── Total time (moved below carryout) ──────────────────────────────
+    # PHC's own manual tracking sheet's "Average Patient's Total Waiting
+    # Time" includes all four stages, ending with "Carry out Dr's Orders"
+    # — not just kiosk_time → consult_end. Computing total_time without
+    # carryout was the exact source of a ~7 minute gap between our
+    # computed average and PHC's recorded average (confirmed by matching
+    # the gap almost to the second against PHC's own recorded carryout
+    # average for 2024-03-21). fillna(0) treats "no carryout for this
+    # patient" as zero added time rather than dropping the row's
+    # otherwise-valid total_time to NaN.
+    df['total_time'] = (df['consult_end'] - df['kiosk_time']).dt.total_seconds() / 60
+
+    if 'service_carryout' in df.columns:
+        df['total_time'] = df['total_time'] + df['service_carryout'].fillna(0)
 
     # Time grouping — computed in Asia/Manila local time, not UTC.
     manila_time        = df['kiosk_time'].dt.tz_convert('Asia/Manila')

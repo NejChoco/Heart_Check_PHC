@@ -23,8 +23,12 @@ from .constants import (
 # Calculate daily summaries such as patient counts and average wait times per day
 def daily_summary(df: pd.DataFrame) -> pd.DataFrame:
     """Daily aggregation — last 5 days shown on dashboard."""
+    clean = df.copy()
+    if 'total_time' in clean.columns:
+        clean.loc[clean['total_time'] < 0, 'total_time'] = pd.NA
+
     return (
-        df.groupby('visit_date').agg(
+        clean.groupby('visit_date').agg(
             total_patients        = ('patient_id',        'count'),
             avg_wait_registration = ('wait_registration', 'mean'),
             avg_wait_consultation = ('wait_consultation', 'mean'),
