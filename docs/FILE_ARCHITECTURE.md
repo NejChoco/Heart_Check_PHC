@@ -43,6 +43,7 @@ Directory structure:
     │   │   │   │   ├── DateRangeSelector.tsx
     │   │   │   │   ├── LRForecast.tsx
     │   │   │   │   ├── MetricCardShow.tsx
+    │   │   │   │   ├── PHCComplianceSummary.tsx
     │   │   │   │   └── VolumeAndWaitCharts.tsx
     │   │   │   └── hooks/
     │   │   │       └── useAnalyticsData.ts
@@ -296,6 +297,6 @@ Directory structure:
     │   └── Types.ts
     └── utils/
         ├── chartDataPrep.ts
+        ├── formatMinutesToHMS.ts
         └── waitTime.ts
-
 ```
