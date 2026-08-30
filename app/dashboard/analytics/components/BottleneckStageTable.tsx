@@ -1,5 +1,7 @@
 "use client";
 
+import {formatMinutesToHMS} from "@/utils/formatMinutesToHMS";
+
 interface Stage {
   stage_key: string;
   stage_label: string;
@@ -58,7 +60,7 @@ export default function BottleneckStageTable({ stages }: Props) {
                   {stage.stage_label}
                 </td>
                 <td className="py-4 pr-4 text-gray-300 whitespace-nowrap">
-                  {stage.level === "No Data" ? "—" : `${stage.avg_minutes} min`}
+                  {stage.level === "No Data" ? "—" : formatMinutesToHMS(stage.avg_minutes)}
                 </td>
                 <td className="py-4 pr-4 text-gray-400 whitespace-nowrap">
                   {stage.patient_count}

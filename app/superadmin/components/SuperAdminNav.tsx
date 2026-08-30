@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function SuperAdminNav() {
     const router = useRouter();
@@ -28,6 +29,11 @@ export default function SuperAdminNav() {
             <span className="text-white font-semibold">Super Admin</span>
             <div className="flex items-center gap-4">
                 <span className="text-white/80 text-sm">{userEmail}</span>
+                
+                <Link href="/superadmin/customization" className="text-white/80 hover:text-white text-sm">
+                    Customization
+                </Link>
+                
                 <button onClick={handleSignOut} className="text-white/80 hover:text-white text-sm">
                     Sign Out
                 </button>

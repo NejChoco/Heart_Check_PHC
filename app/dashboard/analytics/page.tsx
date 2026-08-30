@@ -5,6 +5,7 @@ import { getLRRaw, getARIMARaw, prepareLRChartData, prepareARIMAChartData, getTr
 import MetricCardsRow from "@/app/dashboard/analytics/components/MetricCardShow";
 import BottleneckStageTable from "@/app/dashboard/analytics/components/BottleneckStageTable";
 import VolumeAndWaitCharts from "@/app/dashboard/analytics/components/VolumeAndWaitCharts";
+import PHCComplianceSummary from "@/app/dashboard/analytics/components/PHCComplianceSummary";
 import LRForecast from "@/app/dashboard/analytics/components/LRForecast";
 import ArimaForecast from "@/app/dashboard/analytics/components/ArimaForecast";
 import DateRangeSelector from "@/app/dashboard/analytics/components/DateRangeSelector";
@@ -68,6 +69,8 @@ export default function AdminDashboard() {
           dailySummary={data.daily_summary || []}
           hourlyPattern={data.hourly_pattern || []}
         />
+
+        <PHCComplianceSummary data={data.phc_compliance} />
 
         <LRForecast
           lrRaw={lrRaw}
