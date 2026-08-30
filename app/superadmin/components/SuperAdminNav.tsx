@@ -31,7 +31,7 @@ export default function SuperAdminNav() {
                 <span className="text-white/80 text-sm">{userEmail}</span>
                 
                 <Link href="/superadmin/customization" className="text-white/80 hover:text-white text-sm">
-                    customization
+                    Customization
                 </Link>
                 
                 <button onClick={handleSignOut} className="text-white/80 hover:text-white text-sm">
