@@ -2,60 +2,26 @@
 
 import { useEffect, useState } from "react";
 
-export default function ConfirmationLayout({children}: {children: React.ReactNode;}) {
-  const [scale, setScale] = useState(1);
-  const [dimensions, setDimensions] = useState({ width: 1080, height: 1920 });
-  const [mounted, setMounted] = useState(false);
+export default function ConfirmationLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    const updateScale = () => {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      const virtualWidth = isLandscape ? 1920 : 1080;
-      const virtualHeight = isLandscape ? 1080 : 1920;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-      const scaleX = window.innerWidth / virtualWidth;
-      const scaleY = window.innerHeight / virtualHeight;
-      const finalScale = Math.min(scaleX, scaleY) || 1;
-      
-      setScale(finalScale);
-
-      setDimensions({
-        width: window.innerWidth / finalScale,
-        height: window.innerHeight / finalScale
-      });
-      
-      setMounted(true);
-    };
-
-    const initialUpdate = () => {
-      requestAnimationFrame(updateScale);
-      setTimeout(updateScale, 50);
-    };
-
-    initialUpdate();
-    window.addEventListener("resize", updateScale);
-    window.addEventListener("orientationchange", updateScale);
-    return () => {
-      window.removeEventListener("resize", updateScale);
-      window.removeEventListener("orientationchange", updateScale);
-    };
-  }, []);
-
-  return (
-    <div className={`w-screen h-screen overflow-hidden flex items-center justify-center bg-white transition-opacity duration-300 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
-      
-      <div
-        className="flex flex-col items-center flex-shrink-0"
-        style={{
-          width: `${dimensions.width}px`,
-          height: `${dimensions.height}px`,
-          transform: `scale(${scale})`,
-          transformOrigin: "center center"
-        }}
-      >
-        <main className="h-full w-full">{children}</main>
-      </div>
-
-    </div>
-  );
+    return (
+        <div
+            className={`flex h-dvh w-dvw items-center justify-center overflow-hidden bg-white transition-opacity duration-300 ${
+                mounted ? "opacity-100" : "opacity-0"
+            }`}
+        >
+            <main className="flex h-full w-full flex-col items-center">
+                {children}
+            </main>
+        </div>
+    );
 }
