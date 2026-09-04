@@ -17,6 +17,10 @@ from analytics import generate_report
 from analytics.preprocessing import preprocess_queue_data
 from analytics.descriptive import monthly_breakdown
 
+from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
+from analytics.export import build_phc_excel
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 env_path = os.path.join(BASE_DIR, "..", ".env.local")
 load_dotenv(env_path)
@@ -398,3 +402,31 @@ def get_empty_data():
             }
         }
     }
+    
+@app.get("/api/export-excel")
+def export_excel(range: str = "90d", service: str | None = None, status: str | None = None):
+    """
+    Exports raw `patients` rows as .xlsx in PHC's own tracking-sheet format.
+    Reuses the same `range` param convention as the dashboard endpoints.
+    """
+    # Pull raw (not preprocessed/renamed) rows — reuse your existing
+    # paginated Supabase fetch helper, just skip preprocessing.py's
+    # service->purpose rename step for this one.
+    df = fetch_patients_raw(range=range)  # <- your existing httpx-paginated fetch, pre-rename
+
+    if service:
+        df = df[df["service"] == service]
+    if status:
+        df = df[df["status"] == status]
+
+    if df.empty:
+        raise HTTPException(status_code=404, detail="No patient records found for this range.")
+
+    buffer = build_phc_excel(df, sheet_title=f"PHC Export {range}")
+    filename = f"phc_patients_export_{range}.xlsx"
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

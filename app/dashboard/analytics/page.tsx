@@ -9,6 +9,7 @@ import PHCComplianceSummary from "@/app/dashboard/analytics/components/PHCCompli
 import LRForecast from "@/app/dashboard/analytics/components/LRForecast";
 import ArimaForecast from "@/app/dashboard/analytics/components/ArimaForecast";
 import DateRangeSelector from "@/app/dashboard/analytics/components/DateRangeSelector";
+import ExportExcelButton from "@/app/dashboard/analytics/components/ExportExcelButton";
 
 export default function AdminDashboard() {
   const { data, loading, isRefreshing, error, range, setRange } = useAnalyticsData();
@@ -59,6 +60,7 @@ export default function AdminDashboard() {
               </span>
             )}
           </div>
+          <ExportExcelButton range={range} />
         </div>
 
         <MetricCardsRow data={data} />
